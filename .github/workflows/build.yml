@@ -1,0 +1,23 @@
+name: build-px3
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang lld
+      - run: |
+          clang++ --target=wasm32 -O3 -std=c++17 -ffreestanding -fno-exceptions -fno-rtti -nostdlib \
+            -mbulk-memory -msign-ext -mnontrapping-fptoint \
+            -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=50331648 -Wl,--max-memory=50331648 \
+            -Wl,-z,stack-size=1048576 \
+            -Wl,--export=px_init -Wl,--export=px_io -Wl,--export=px_search -Wl,--export=px_perft \
+            -o px3.wasm px3.cpp
+          base64 -w0 px3.wasm > px3.b64
+          ls -l px3.wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: px3
+          path: |
+            px3.wasm
+            px3.b64
